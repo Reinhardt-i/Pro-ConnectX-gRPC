@@ -2,32 +2,52 @@ import grpc
 from concurrent import futures
 import proconnectx_pb2
 import proconnectx_pb2_grpc
+import logging
+
 
 _USERS = {}
+_USER_PROFILES = {}  # New dictionary to store user profiles
+
 
 class ProConnectXServicer(proconnectx_pb2_grpc.ProConnectXServicer):
 
-    def Register(self, request, context):
-        username = request.username
-        password = request.password
-        if username in _USERS:
-            return proconnectx_pb2.RegistrationResponse(success=False, message="Username already exists.")
-        _USERS[username] = password
-        return proconnectx_pb2.RegistrationResponse(success=True, message="Registration successful.")
+    # Existing methods (Register and Login) go here...
 
-    def Login(self, request, context):
-        username = request.username
-        password = request.password
-        if username not in _USERS or _USERS[username] != password:
-            return proconnectx_pb2.LoginResponse(success=False, message="Invalid username or password.", user_id=0)
-        return proconnectx_pb2.LoginResponse(success=True, message="Login successful.", user_id=1)
+    def SetProfile(self, request, context):
+        user_id = request.user_id
+        profile_data = request.profile_data
 
-def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    proconnectx_pb2_grpc.add_ProConnectXServicer_to_server(ProConnectXServicer(), server)
-    server.add_insecure_port('localhost:50051')
-    server.start()
-    server.wait_for_termination()
+        try:
+            _USER_PROFILES[user_id] = profile_data
+            return proconnectx_pb2.ProfileResponse(success=True, message="Profile updated successfully.")
+        except Exception as e:
+            logging.error(f"SetProfile error: {str(e)}")
+            return proconnectx_pb2.ProfileResponse(success=False, message="Failed to update profile.")
 
-if __name__ == '__main__':
-    serve()
+    def GetProfile(self, request, context):
+        user_id = request.user_id
+
+        try:
+            if user_id in _USER_PROFILES:
+                profile_data = _USER_PROFILES[user_id]
+                return proconnectx_pb2.GetProfileResponse(success=True, profile_data=profile_data, message="Profile retrieved successfully.")
+            else:
+                return proconnectx_pb2.GetProfileResponse(success=False, message="Profile not found.")
+        except Exception as e:
+            logging.error(f"GetProfile error: {str(e)}")
+            return proconnectx_pb2.GetProfileResponse(success=False, message="Failed to retrieve profile.")
+
+    def UpdateProfile(self, request, context):
+        user_id = request.user_id
+        updated_data = request.updated_data
+
+        try:
+            if user_id in _USER_PROFILES:
+                _USER_PROFILES[user_id] = updated_data
+                return proconnectx_pb2.UpdateProfileResponse(success=True, message="Profile updated successfully.")
+            else:
+                return proconnectx_pb2.UpdateProfileResponse(success=False, message="Profile not found.")
+        except Exception as e:
+            logging.error(f"UpdateProfile error: {str(e)}")
+            return proconnectx_pb2.UpdateProfileResponse(success=False, message="Failed to update profile.")
+
