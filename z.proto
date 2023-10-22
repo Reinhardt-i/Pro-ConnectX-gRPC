@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package proconnectx;
+import "google/protobuf/timestamp.proto";
 
 service ProConnectX {
     rpc Register(RegistrationRequest) returns (RegistrationResponse);
